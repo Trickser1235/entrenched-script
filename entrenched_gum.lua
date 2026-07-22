@@ -1,4 +1,3 @@
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -137,7 +136,7 @@ SubmitBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ESP
+-- ESP System
 local ESPFolder = Instance.new("Folder")
 ESPFolder.Name = "GUM_ESP"
 ESPFolder.Parent = ScreenGui
@@ -185,16 +184,21 @@ end
 for _, p in ipairs(Players:GetPlayers()) do
     if p ~= LocalPlayer then CreateESP(p) end
 end
-Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function() if ESPEnabled then CreateESP(p) end end) end)
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function() if ESPEnabled then CreateESP(p) end end)
+end)
 
 local function GetClosestEnemy()
-    local closest, dist = nil, math.huge
+    local closest, shortest = nil, math.huge
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 and p.Team ~= LocalPlayer.Team then
-            local part = p.Character:FindFirstChild(TargetPart) or p.Character:FindFirstChild("HumanoidRootPart")
-            if part then
-                local d = (Camera.CFrame.Position - part.Position).Magnitude
-                if d < dist then dist = d closest = part end
+            local root = p.Character:FindFirstChild(TargetPart) or p.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                local d = (Camera.CFrame.Position - root.Position).Magnitude
+                if d < shortest then
+                    shortest = d
+                    closest = root
+                end
             end
         end
     end
@@ -203,26 +207,28 @@ end
 
 -- Silent Aim
 local mt = getrawmetatable(game)
-local old = mt.__index
+local oldIndex = mt.__index
 setreadonly(mt, false)
-mt.__index = newcclosure(function(self, k)
-    if SilentAimEnabled and k == "Hit" and self == LocalPlayer:GetMouse() then
-        local t = GetClosestEnemy()
-        if t then return CFrame.new(t.Position + t.Velocity * PredictionFactor) end
+mt.__index = newcclosure(function(self, key)
+    if SilentAimEnabled and key == "Hit" and self == LocalPlayer:GetMouse() then
+        local target = GetClosestEnemy()
+        if target then
+            return CFrame.new(target.Position + target.Velocity * PredictionFactor)
+        end
     end
-    return old(self, k)
+    return oldIndex(self, key)
 end)
 setreadonly(mt, true)
 
 -- Aimbot
 RunService.RenderStepped:Connect(function()
     if AimbotEnabled then
-        local t = GetClosestEnemy()
-        if t then
-            local pred = t.Position + t.Velocity * PredictionFactor
-            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, pred)
+        local target = GetClosestEnemy()
+        if target then
+            local predPos = target.Position + target.Velocity * PredictionFactor
+            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, predPos)
         end
     end
 end)
 
-print("GUM Entrenched Executor Loaded via GitHub")
+print("GUM Entrenched Executor Loaded - Ready")
